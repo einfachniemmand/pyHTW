@@ -45,7 +45,8 @@ echo PyHTW was saved successfully. You can always open it by double-clicking the
 echo To launch it now, press any key. You may delete the installer now.
 echo.
 pause
-python htw.py
+start cmd /k "python htw.py"
+color 0a
 cls
 echo.
 echo    — — developed by bennosaurusrex — —
