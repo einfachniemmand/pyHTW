@@ -7,16 +7,22 @@ import webbrowser
 import atexit
 import os
 import tempfile
+import shutil
+import random
+import json
+from wcwidth import wcwidth
+xp="?"
 print("\033[32m           — — developed by bennosaurusrex — — \033[0m")
-print(r"""
- _   _            _      _____ _           __        __   _     
+print(r""" _   _            _      _____ _           __        __   _     
 | | | | __ _  ___| | __ |_   _| |__   ___  \ \      / /__| |__
 | |_| |/ _` |/ __| |/ /   | | | '_ \ / _ \  \ \ /\ / / _ \ '_ \
 |  _  | (_| | (__|   <    | | | | | |  __/   \ V  V /  __/ |_) |
 |_| |_|\__,_|\___|_|\_\   |_| |_| |_|\___|    \_/\_/ \___|_.__/
 """)
+print("\033[33mIt's highly recommended to use Always On Top.\033[0m")
 print("Please log in or register with your HTW credentials.")
 def main():
+    global xp
     while True:
         usr = input("\n  Username: ")
         userexists = requests.get(f"https://hack.arrrg.de/check/{usr}")
@@ -28,13 +34,14 @@ def main():
             print(f"\n🆗 Server responded with final status code {response.status_code}")
             if response.url == "https://hack.arrrg.de/map":
                 print(f"✅ Logged in successfully as '{usr}'")
-                return session, usr
+                xp = getXP(response)
+                return session, usr, pwd
         elif len(usr)>2:
             if input("  Do you want to create a new account? [yes|no]: ").strip().lower() in ("yes","y"):
                 print("  Please review the privacy policy: https://hack.arrrg.de/privacy")
                 pwd = getpass.getpass("  Please enter a password you will remember: ")
                 if getpass.getpass("  Repeat the password: ") == pwd:
-                    session = requests.Session();
+                    session = requests.Session()
                     form = session.get("https://hack.arrrg.de/register")
                     print(f"🆗 CRSF Form Website request finally returned {form.status_code}")
                     soup = BeautifulSoup(form.text, "html.parser")
@@ -46,48 +53,222 @@ def main():
                     print(f"🆗 Registration request finally returned {r.status_code}")
                     print(f"✅ Tried creating user '{usr}' with CSRF Token '{crsf}'.")
                     check = session.get("https://hack.arrrg.de/map")
+                    print(f"\n🆗 Server responded with final status code {check.status_code}")
                     if check.url!="https://hack.arrrg.de/map":
                         print("❌ An error occured. Please start over")
                     else:
-                        return session, usr
+                        print(f"✅ Logged in successfully as '{usr}'")
+                        xp = getXP(check)
+                        return session, usr, pwd
                 print("❌ The passwords did not match. Please start over")
         if input("⚠️ Credentials incorrect.\n  Try again? [yes|no]: ").strip().lower() not in ("y", "yes"):
             print("Aborting.")
             sys.exit(1)
 
-def pnl(session, usr):
+def pnl(session, usr, pwd):
+    global xp
+    template = False
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print(r"""
- _  _         _     _____ _         __      __   _    
+        print("\033[90m"+(f"{"\033[33mConnected to template \033[90m| " if template == True else ""}{usr} | {xp}XP".rjust(shutil.get_terminal_size().columns))+"\033[0m")
+        print(r""" _  _         _     _____ _         __      __   _    
 | || |__ _ __| |__ |_   _| |_  ___  \ \    / /__| |__ 
 | __ / _` / _| / /   | | | ' \/ -_)  \ \/\/ / -_) '_ \
 |_||_\__,_\__|_\_\   |_| |_||_\___|   \_/\_/\___|_.__/                                   
 PROOVE YOUR SKILL""")
         print("\nSelect one of the following actions.")
-        action = input("  [exit|logout|export|delete|stats|wechall|changepwd|challengelist|loadchallenge]: ").strip().lower()
+        action = input("  [NEW: autofill|exit|logout|export|delete|reset|stats|wechall|lang|changepwd|list|challenge|template]: ").strip().lower()
         os.system('cls' if os.name == 'nt' else 'clear')
-        print(r"""
- _  _         _     _____ _         __      __   _    
+        print("\033[90m"+(f"{"\033[33mConnected to template \033[90m| " if template == True else ""}{usr} | {xp}XP".rjust(shutil.get_terminal_size().columns))+"\033[0m")
+        print(r""" _  _         _     _____ _         __      __   _    
 | || |__ _ __| |__ |_   _| |_  ___  \ \    / /__| |__ 
 | __ / _` / _| / /   | | | ' \/ -_)  \ \/\/ / -_) '_ \
 |_||_\__,_\__|_\_\   |_| |_||_\___|   \_/\_/\___|_.__/                                   
 htw/"""+action)
-        if action=="loadchallenge":
-            print("ℹ️ Use challengelist to get all available challengeIDs\n")
-            chal = input("  Enter a challengeID: ").strip()
-            r = session.get("https://hack.arrrg.de/map")
-            print(f"\n🆗 Map request finally returned {r.status_code}")
-            soup = BeautifulSoup(r.text, "html.parser")
-            needle = f"/challenge/{chal}"
-            target = None
-            for a in soup.find_all("a", class_="no-underline"):
-                href = a.get("href") or ""
-                if needle == href or href.endswith(needle):
-                    target = a
+        r = session.get("https://hack.arrrg.de/")
+        if r.url!="https://hack.arrrg.de/map":
+            logout()
+        else:
+            xp=getXP(r)
+        if action=="template":
+            print("\nHeads up! You are about to create a template. \nPlease note the following beforehand:\n\n - You are advised to only use it on your own behalf\n - The template will be created as 'htwdata.json'. If this file already exists and cannot be identified as a htw template, it will get deleted.\n - Note, that every solution you enter in this will in this session will be saved in the template.\n - Users have to be on the same level or lower as you to use your template. To reset your level, use reset.")
+            if input("\n  Turn templates on? [yes|no]: ") in ("y","yes"):
+                template=True
+                try:
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    json_path = os.path.join(script_dir, 'htwdata.json')
+                    if os.path.exists(json_path):
+                        try:
+                            with open(json_path, 'r', encoding='utf-8') as jf:
+                                existing = json.load(jf)
+                            if isinstance(existing, dict) and 'lang' in existing and isinstance(existing['lang'], str):
+                                session.cookies.set('htw_language_preference', existing['lang'], domain='hack.arrrg.de')
+                                print(f"✅ Templates activated! Language set to {existing['lang']} from {json_path}")
+                            else:
+                                print("✅ Templates activated! Start by doing your first challenge.")
+                        except Exception as e:
+                            print(f"✅ Templates activated! Existing template has no valid syntax and will be deleted. \nStart by doing your first challenge.")
+                    else:
+                        print("✅ Templates activated! Start by doing your first challenge.")
+                except Exception:
+                    template = True
+                    print("✅ Templates activated! Start by doing your first challenge.")
+
+            else:
+                template=False
+                print("✅ Templates turned off.")
+        if action=="lang":
+            if template:
+                print("❌ You cannot change the language while being connected to a template.")
+            else:
+                if session.cookies.get('htw_language_preference') == "de":
+                    session.cookies.set('htw_language_preference', 'en', domain='hack.arrrg.de')
+                else:
+                    session.cookies.set('htw_language_preference', 'de', domain='hack.arrrg.de')
+            print("\n✅ The HTW language is now set to "+ session.cookies.get('htw_language_preference'))
+        if action=="reset":
+            if input(f"\nHeads up! You are about to reset your account: '{usr}'.\nPlease note the following beforehand: \n - The content of your account will be permanently terminated. \n - Your local templates are not getting deleted. \n - You will be logged out of all devices but you may log in afterwards. \n - The Developer has no liability of any kind.\n\n  Continue? [yes|no]: ").strip().lower() in ("y","yes"):
+                print("🔄️ Deleting contents")
+                form = session.get("https://hack.arrrg.de/delete")
+                print(f"🆗 CRSF Form Website request finally returned {form.status_code}")
+                if form.url == "https://hack.arrrg.de/delete":
+                    soup = BeautifulSoup(form.text, "html.parser")
+                    crsf = soup.select_one('input[type="hidden"]').get("value")
+                else:
+                    print("❌ Cannot access the deletion changing form. This request will fail. Continue anyways.")
+                if not crsf:
+                    crsf = ""
+                    print("⚠️ Could not fetch CSRF. Continue without.")
+                r = session.post("https://hack.arrrg.de/delete", data={"confirmation": usr, "csrf":crsf})
+                print(f"🆗 Deletion request finally returned {r.status_code}")
+                print(f"⚠️ Logged out")
+                print(f"✅ Tried deleting user '{usr}' with CSRF Token '{crsf}'.")
+                print("🔄️ Creating log in")
+                session = requests.Session()
+                print("ℹ️ Reset session")
+                form = session.get("https://hack.arrrg.de/register")
+                print(f"🆗 CRSF Form Website request finally returned {form.status_code}")
+                soup = BeautifulSoup(form.text, "html.parser")
+                crsf = soup.select_one('input[type="hidden"]').get("value")
+                if not crsf:
+                    crsf = ""
+                    print("⚠️ Could not fetch CSRF. Continue without.")
+                r = session.post("https://hack.arrrg.de/register", data={"username": usr, "pw1":pwd, "pw2":pwd, "csrf":crsf, "room":""})
+                print(f"🆗 Credential registration request finally returned {r.status_code}")
+                print(f"✅ Tried creating user login '{usr}' with CSRF Token '{crsf}'.")
+                check = session.get("https://hack.arrrg.de/map")
+                print(f"\n🆗 Server responded with final status code {check.status_code}")
+                if check.url!="https://hack.arrrg.de/map":
+                    print("❌ An error occured. Please start over")
+                else:
+                    print(f"✅ Welcome back, '{usr}'!")
+            else:
+                "✅ Abort."
+        if action=="autofill":
+            print("\nNEW: Place a JSON htw template named 'htwdata.json' in the same folder as this program to apply the template onto your account.")
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            default_path = os.path.join(script_dir, 'htwdata.json')
+            path = default_path
+            if not os.path.exists(path):
+                user_path = input("  JSON path (leave empty to abort): ").strip()
+                if not user_path:
+                    print("⚠️ No JSON provided. Abort autofill.")
+                else:
+                    path = user_path
+            if path and os.path.exists(path):
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                except Exception as e:
+                    print(f"⚠️ Failed to read/parse JSON: {e}")
+                    data = None
+                if data is None:
+                    print("⚠️ No data to autofill.")
+                else:
+                    try:
+                        if session.cookies.get('htw_language_preference') != data[next(iter(data))]:
+                            print(f"ℹ️ Switched HTW language from {session.cookies.get('htw_language_preference')} to {data[next(iter(data))]}")
+                            session.cookies.set('htw_language_preference', data[next(iter(data))], domain='hack.arrrg.de')
+                        del data[next(iter(data))]
+                    except Exception:
+                        pass
+                    print(f"\n🆗 Loaded {len(data)} entries from {path}.\n🔄️ Start applying...")
+                    completed = 0
+                    failed=[]
+                    def updateProgress():
+                        print(f"{completed}/{len(data)*2} | {round(completed/len(data)*50)}% completed")
+                    for k, v in data.items():
+                        available = session.get(f"https://hack.arrrg.de{k}")
+                        soup = BeautifulSoup(available.text, "html.parser")
+                        completed+=1
+                        updateProgress()
+                        if not soup.select(f"a[href='/feedback/{k.replace("/challenge/","")}']"):
+                            failed.append(f" - {soup.select_one("h2").get_text()} (#{k.replace("/challenge/","")}) - 403")
+                            completed+=1
+                            updateProgress()
+                            continue
+                        r = session.post(f"https://hack.arrrg.de{k}", data={"answer": v})
+                        soup = BeautifulSoup(r.text, "html.parser")
+                        completed+=1
+                        updateProgress()
+                        if soup.select("p.text-danger strong:not(p.status *)"):
+                            failed.append(f" - {soup.select_one("h2").get_text()} (#{k.replace("/challenge/","")}) - 406")
+                            continue
+                        elif not soup.select("p.text-primary strong:not(p.status *)"):
+                            print(soup)
+                            failed.append(f" - {soup.select_one("h2").get_text()} (#{k.replace("/challenge/","")}) - 422")
+                            continue
+                    print(f"\n✅ Finish applying {len(data)} entries with {len(failed)} failure(s):")
+                    print("\n".join(failed))
+                    if len(failed) == 0:
+                        print("You can try running this again to reduce failures if the list was not properly sorted.")
+                    
+
+        if action=="challenge":
+            print("ℹ️ Use list to get all available challengeIDs\n")
+            chal = input("  Enter a challengeID (leave empty for unfinished challenge): ").strip()
+            # Allow immediate quit from the challenge prompt
+            if chal.lower() in ("quit", "q", "exit"):
+                print("✅ Abort")
+                continue
+            random_mode = (chal == "")
+            while True:
+                r = session.get("https://hack.arrrg.de/map")
+                print(f"\n🆗 Map request finally returned {r.status_code}")
+                soup = BeautifulSoup(r.text, "html.parser")
+                target = None
+                if random_mode:
+                    candidates = []
+                    for a in soup.find_all("a", class_="no-underline"):
+                        circle = a.find("circle")
+                        if not circle:
+                            continue
+                        fill = (circle.get("fill") or "").strip().lower()
+                        # unfinished/available challenges are those not greyed out
+                        if fill != "#666699":
+                            candidates.append(a)
+                    if not candidates:
+                        print("\n\033[3mYou're done for now. No unfinished challenges left.\033[0m")
+                        break
+                    target = random.choice(candidates)
+                    href = (target.get("href") or "").strip().replace("/challenge/", "")
+                    m = re.search(r'/challenge/([^/]+)$', href)
+                    if m:
+                        chal = m.group(1)
+                    else:
+                        chal = href.strip("/")
+                else:
+                    needle = f"/challenge/{chal}"
+                    for a in soup.find_all("a", class_="no-underline"):
+                        href = a.get("href") or ""
+                        if needle == href or href.endswith(needle):
+                            target = a
+                            break
+
+                if not target:
+                    print(f"⚠️ You either have not unlocked challenge #{chal} yet or it does not exist")
                     break
-            if target:
-                print(target)
+
                 print(f"🔄️ Loading challenge {chal}: {target.get_text(' ', strip=True)}")
                 chalCode = session.get(f"https://hack.arrrg.de/challenge/{chal}")
                 print(f"🆗 Challenge finally returned {chalCode.status_code}")            
@@ -98,12 +279,12 @@ htw/"""+action)
                 html_content = r"""
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Gudea:ital,wght@0,400;0,700;1,400&display=swap');
-                    *:not(.story-container,.story-container *,#chat-container,#chat-container *, body, html, .container, h2) {
+                    p.status, .page-header, .my-4, .container > p:nth-child(5), #challenge_form, small a, .container > div:nth-child(6), .container > div:nth-child(7) {
                         display:none !important
                     }
                     .container {
                         padding-top:50px;
-                        padding-bottom:75px;
+                        padding-bottom:0px;
                     }
                     img {
                         border-radius:5px;
@@ -116,7 +297,6 @@ htw/"""+action)
                     },500)
                 </script>
                 """+str(soup);
-                # Add prefixes to all urls
                 soup_abs = BeautifulSoup(html_content, "html.parser")
                 for tag in soup_abs.find_all(True):
                     for attr, val in list(tag.attrs.items()):
@@ -143,32 +323,68 @@ htw/"""+action)
                 webbrowser.open('file://' + os.path.abspath(tmp_path))
                 atexit.register(lambda: os.remove(tmp_path))
                 os.system('cls' if os.name == 'nt' else 'clear')
-                print(r"""
- _  _         _     _____ _         __      __   _    
+                print("\033[90m"+(f"{"\033[33mConnected to template \033[90m| " if template == True else ""}{usr} | {xp}XP".rjust(shutil.get_terminal_size().columns))+"\033[0m")
+                print(r""" _  _         _     _____ _         __      __   _    
 | || |__ _ __| |__ |_   _| |_  ___  \ \    / /__| |__ 
 | __ / _` / _| / /   | | | ' \/ -_)  \ \/\/ / -_) '_ \
 |_||_\__,_\__|_\_\   |_| |_||_\___|   \_/\_/\___|_.__/                                   
-HTW/CHALLENGES/"""+chal)
+HTW/CHALLENGES/"""+chal+" - "+soup_abs.select_one("h2").get_text())
                 print(f"\033[90m{solvedCount} • \033[3mThe challenge has been opened in another window.\033[0m\033[0m")
                 while True:
                     sol = input("\nEnter solution or 'quit' to abort: ").strip()
                     if sol.lower() in ("quit", "q", "exit"):
                         print("✅ Abort")
+                        random_mode = False
                         break
                     r = session.post(f"https://hack.arrrg.de/challenge/{chal}", data={"answer": sol})
                     soup = BeautifulSoup(r.text, "html.parser")
-                    if soup.select("p.text-danger strong:not(p.status *)"):
-                        print(f"\033[31m{sol} is not correct. ({r.status_code})\033[0m")
+                    if soup.select_one("p.text-danger strong:not(p.status *)"):
+                        print(f"\033[31m{soup.select_one("p.text-danger strong:not(p.status *)").get_text().split()[0]} is not correct. ({r.status_code})\033[0m")
                         continue
-                    elif soup.select("p.text-primary strong:not(p.status *)"):
-                        print(f"\033[32m{sol} is correct. ({r.status_code})\033[0m")
-                        break
+                    elif soup.select_one("p.text-primary strong:not(p.status *)"):
+                        print(f"\033[32m{soup.select_one("p.text-primary strong:not(p.status *)").get_text().split()[0]} is correct. ({r.status_code})\033[0m")
+                        if template:
+                            try:
+                                script_dir = os.path.dirname(os.path.abspath(__file__))
+                                json_path = os.path.join(script_dir, 'htwdata.json')
+                                lang = session.cookies.get('htw_language_preference')
+                                data = None
+                                if os.path.exists(json_path):
+                                    try:
+                                        with open(json_path, 'r', encoding='utf-8') as jf:
+                                            data = json.load(jf)
+                                        if not isinstance(data, dict) or 'lang' not in data:
+                                            data = {'lang': lang}
+                                    except Exception:
+                                        data = {'lang': lang}
+                                else:
+                                    data = {'lang': lang}
+
+                                key = f"/challenge/{chal}"
+                                if key in data:
+                                    try:
+                                        del data[key]
+                                    except Exception:
+                                        pass
+                                data[key] = sol
+                                with open(json_path, 'w', encoding='utf-8') as jf:
+                                    json.dump(data, jf, ensure_ascii=False, indent=4)
+                                print(f"✅ Saved solved challenge to template")
+                            except Exception as e:
+                                print(f"⚠️ Failed saving template: {e}")
+                        if random_mode:
+                            break
+                        else:
+                            random_mode = False
+                            break
                     else:
                         print(f"⚠️ No definitive result detected. Try again or type 'quit' to abort. ({r.status_code})")
-                    os.remove(tmp_path)
-            else:
-                print(f"⚠️ You either have not unlocked challenge #{chal} yet or it does not exist")
-        if action=="challengelist":
+                os.remove(tmp_path)
+                if random_mode:
+                    continue
+                else:
+                    break
+        if action=="list":
             r = session.get("https://hack.arrrg.de/map")
             print(f"\n🆗 Map request finally returned {r.status_code}")
             soup = BeautifulSoup(r.text, "html.parser")
@@ -201,9 +417,9 @@ HTW/CHALLENGES/"""+chal)
                         href = a.get("href") or ""
                         title = a.get_text(" ", strip=True)
                         print(f"\033[90m - {title} (#{href.replace('/challenge/', '')})\033[0m")
-                print("\nUse loadchallenge for further details.")
+                print("\nUse challenge for further details.")
         if action=="delete":
-            print(f"\n⚠️ This will terminate the account of '{usr}' permanently")
+            print(f"\n⚠️ This will terminate the account of '{usr}' permanently. The Developer has no liability of any kind.")
             if input("  Continue? [yes|no]: ") in ("y","yes"):
                 form = session.get("https://hack.arrrg.de/delete")
                 print(f"🆗 CRSF Form Website request finally returned {form.status_code}")
@@ -347,8 +563,17 @@ HTW/CHALLENGES/"""+chal)
         r = session.get("https://hack.arrrg.de/")
         if r.url!="https://hack.arrrg.de/map":
             logout()
+        else:
+            xp=getXP(r)
             
+def getXP (req):
+    if not req.text:
+        return "?"
+    xpSoup = BeautifulSoup(req.text, "html.parser")
+    if xpSoup.select_one("#statusbar-user-score"):
+        return xpSoup.select_one("#statusbar-user-score").get_text().strip()
+    return "?"
 
 if __name__ == "__main__":
-    sess, user = main()
-    pnl(sess, user)
+    sess, user, pwd = main()
+    pnl(sess, user, pwd)
