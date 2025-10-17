@@ -260,7 +260,7 @@ HTW/CHALLENGES/"""+chal)
                 r = session.post("https://hack.arrrg.de/changepw", data={"pw": current, "newpw1": new, "newpw2":new, "csrf":crsf})
                 print(f"🆗 Password changing request finally returned {r.status_code}")
                 print(f"✅ Tried changing Password for user '{usr}' with CSRF Token '{crsf}'. To check, relogin.")
-                pwdAction = input("\n Select one of the following.\n  [curpwd,oldpwd,finish,reverse]: ").strip().lower()
+                pwdAction = input("\nSelect one of the following actions.\n  [curpwd,oldpwd,finish,reverse]: ").strip().lower()
                 if pwdAction=="curpwd":
                     if w==True:
                         print("❌ This Password has been submitted by you and is probably not correct anymore:")
