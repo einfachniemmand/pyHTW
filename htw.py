@@ -74,7 +74,7 @@ def pnl(session, usr, pwd):
         print(r""" _  _         _     _____ _         __      __   _    
 | || |__ _ __| |__ |_   _| |_  ___  \ \    / /__| |__ 
 | __ / _` / _| / /   | | | ' \/ -_)  \ \/\/ / -_) '_ \
-|_||_\__,_\__|_\_\   |_| |_||_\___|   \_/\_/\___|_.__/                                   
+|_||_\__,_\__|_\_\   |_| |_||_\___|   \_/\_/\___|_.__/ 
 PROOVE YOUR SKILL""")
         print("\nSelect one of the following actions.")
         action = input("  [NEW: autofill|exit|logout|export|delete|reset|stats|wechall|lang|changepwd|list|challenge|template]: ").strip().lower()
@@ -83,7 +83,7 @@ PROOVE YOUR SKILL""")
         print(r""" _  _         _     _____ _         __      __   _    
 | || |__ _ __| |__ |_   _| |_  ___  \ \    / /__| |__ 
 | __ / _` / _| / /   | | | ' \/ -_)  \ \/\/ / -_) '_ \
-|_||_\__,_\__|_\_\   |_| |_||_\___|   \_/\_/\___|_.__/                                   
+|_||_\__,_\__|_\_\   |_| |_||_\___|   \_/\_/\___|_.__/ 
 htw/"""+action)
         r = session.get("https://hack.arrrg.de/")
         if r.url!="https://hack.arrrg.de/map":
@@ -202,12 +202,34 @@ htw/"""+action)
                         soup = BeautifulSoup(available.text, "html.parser")
                         completed+=1
                         updateProgress()
-                        if not soup.select(f"a[href='/feedback/{k.replace("/challenge/","")}']"):
+                        if not (soup.select(f"a[href='/feedback/{k.replace("/challenge/","")}']") or f"a[href='/hint/{k.replace("/challenge/","")}']"):
                             failed.append(f" - {soup.select_one("h2").get_text()} (#{k.replace("/challenge/","")}) - 403")
                             completed+=1
                             updateProgress()
                             continue
-                        r = session.post(f"https://hack.arrrg.de{k}", data={"answer": v})
+                        if k.replace("/challenge/","")=="15":
+                            v=usr[::-1]
+                            print("ℹ️ Did not use template for 15 (304)")
+                        if k.replace("/challenge/","")=="118":
+                            r = session.post(f"https://hack.arrrg.de{k}", data={"q1":"4","q2":"4","q3":"4","q4":"2","good":"-","improve":"-","recommend":"yes","answer": "_",})
+                            print("ℹ️ Did not use template for 118 (405)")
+                        elif k.replace("/challenge/","") in ("303","338"):
+                            results=[]
+                            for p in soup_abs.select("div.row p"):
+                                span = p.find("span")
+                                if span:
+                                    expr = span.get_text().replace("=", "")
+                                    try:
+                                        results.append(str(eval(expr)))
+                                    except:
+                                        pass
+                            sol = results
+                            data = {f"ans{i}": v for i, v in enumerate(sol)}
+                            data["answer"] = "ok"
+                            print("ℹ️ Did not use template for "+k.replace("/challenge/","")+" (405)")
+                            r = session.post(f"https://hack.arrrg.de/challenge/{chal}", data=data)
+                        else:
+                            r = session.post(f"https://hack.arrrg.de{k}", data={"answer": v})
                         soup = BeautifulSoup(r.text, "html.parser")
                         completed+=1
                         updateProgress()
@@ -215,7 +237,6 @@ htw/"""+action)
                             failed.append(f" - {soup.select_one("h2").get_text()} (#{k.replace("/challenge/","")}) - 406")
                             continue
                         elif not soup.select("p.text-primary strong:not(p.status *)"):
-                            print(soup)
                             failed.append(f" - {soup.select_one("h2").get_text()} (#{k.replace("/challenge/","")}) - 422")
                             continue
                     print(f"\n✅ Finish applying {len(data)} entries with {len(failed)} failure(s):")
@@ -279,7 +300,7 @@ htw/"""+action)
                 html_content = r"""
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Gudea:ital,wght@0,400;0,700;1,400&display=swap');
-                    p.status, .page-header, .my-4, .container > p:nth-child(5), #challenge_form, small a, .container > div:nth-child(6), .container > div:nth-child(7) {
+                    p.status, .page-header, .container > p:nth-child(5), #challenge_form, small a, .container > div:nth-child(6), .container > div:nth-child(7) {
                         display:none !important
                     }
                     .container {
@@ -322,21 +343,59 @@ htw/"""+action)
                     tmp_path = tmp.name
                 webbrowser.open('file://' + os.path.abspath(tmp_path))
                 atexit.register(lambda: os.remove(tmp_path))
+                r = session.get("https://hack.arrrg.de/")
+                if r.url!="https://hack.arrrg.de/map":
+                    logout()
+                else:
+                    xp=getXP(r)
                 os.system('cls' if os.name == 'nt' else 'clear')
                 print("\033[90m"+(f"{"\033[33mConnected to template \033[90m| " if template == True else ""}{usr} | {xp}XP".rjust(shutil.get_terminal_size().columns))+"\033[0m")
                 print(r""" _  _         _     _____ _         __      __   _    
 | || |__ _ __| |__ |_   _| |_  ___  \ \    / /__| |__ 
 | __ / _` / _| / /   | | | ' \/ -_)  \ \/\/ / -_) '_ \
-|_||_\__,_\__|_\_\   |_| |_||_\___|   \_/\_/\___|_.__/                                   
+|_||_\__,_\__|_\_\   |_| |_||_\___|   \_/\_/\___|_.__/ 
 HTW/CHALLENGES/"""+chal+" - "+soup_abs.select_one("h2").get_text())
                 print(f"\033[90m{solvedCount} • \033[3mThe challenge has been opened in another window.\033[0m\033[0m")
                 while True:
-                    sol = input("\nEnter solution or 'quit' to abort: ").strip()
+                    if chal in ("300","118","303","338"):
+                        print("⚠️ Leave the field free below to solve it automatically.")
+                    sol = input("\nEnter solution or 'quit' to abort and 'skip' to skip: ").strip()
+                    if sol.lower() in ("skip", "s"):
+                        if random_mode:
+                            print("➡️ Skipping to next unfinished challenge...")
+                            break
+                        else:
+                            print("⚠️ 'skip' only valid in random mode. Use empty challenge ID to enable random mode.")
+                            continue
+
+                    if sol=="" and chal in ("300","118"):
+                        print("\n🔄️ Solving this task automatically...")
+                        if chal == "300":
+                            sol="htw4ever"
+                    if sol=="" and chal in ("303","338"):
+                        results=[]
+                        for p in soup_abs.select("div.row p"):
+                            span = p.find("span")
+                            if span:
+                                expr = span.get_text().replace("=", "")
+                                try:
+                                    results.append(str(eval(expr)))
+                                except:
+                                    pass
+
+                        sol = results
                     if sol.lower() in ("quit", "q", "exit"):
                         print("✅ Abort")
                         random_mode = False
                         break
-                    r = session.post(f"https://hack.arrrg.de/challenge/{chal}", data={"answer": sol})
+                    if sol=="" and chal == "118":
+                        r = session.post(f"https://hack.arrrg.de/challenge/{chal}", data={"q1":"4","q2":"4","q3":"4","q4":"2","good":"-","improve":"-","recommend":"yes","answer": "_",})
+                    elif sol=="" and chal in ("303","338"):
+                        data = {f"ans{i}": v for i, v in enumerate(sol)}
+                        data["answer"] = "ok"
+                        r = session.post(f"https://hack.arrrg.de/challenge/{chal}", data=data)
+                    else:
+                        r = session.post(f"https://hack.arrrg.de/challenge/{chal}", data={"answer": sol})
                     soup = BeautifulSoup(r.text, "html.parser")
                     if soup.select_one("p.text-danger strong:not(p.status *)"):
                         print(f"\033[31m{soup.select_one("p.text-danger strong:not(p.status *)").get_text().split()[0]} is not correct. ({r.status_code})\033[0m")
@@ -498,17 +557,17 @@ HTW/CHALLENGES/"""+chal+" - "+soup_abs.select_one("h2").get_text())
             exit()
         if action=="export":
             r = session.get("https://hack.arrrg.de/export-data")
-            print(f"🆗 Data request finally returned {r.status_code}")
+            print(f"\n🆗 Data request finally returned {r.status_code}")
             print(f"\033[90m \n{r.text}\033[0m")
         if action=="stats":
             r = session.get("https://hack.arrrg.de/profile")
-            print(f"🆗 Data request finally returned {r.status_code}")
+            print(f"\n🆗 Data request finally returned {r.status_code}\n")
             soup = BeautifulSoup(r.text, "html.parser")
-            print(soup.select_one(".container > p:nth-child(9)").text)
-            print(soup.select_one(".container > p:nth-child(10)").text)
-            print(soup.select_one(".container > p:nth-child(11)").text)
-            print(soup.select_one(".container > p:nth-child(12)").text)
-            print(soup.select_one(".container > p:nth-child(13)").text)
+            print("  "+soup.select_one(".container > p:nth-child(9)").text)
+            print("  "+soup.select_one(".container > p:nth-child(10)").text)
+            print("  "+soup.select_one(".container > p:nth-child(11)").text)
+            print("  "+soup.select_one(".container > p:nth-child(12)").text)
+            print("  "+soup.select_one(".container > p:nth-child(13)").text)
             elem14 = soup.select_one(".container > p:nth-child(14)")
             if elem14:
                 txt14 = elem14.text.strip()
@@ -516,11 +575,11 @@ HTW/CHALLENGES/"""+chal+" - "+soup_abs.select_one("h2").get_text())
                     print(txt14)
                     elem15 = soup.select_one(".container > p:nth-child(15)")
                     if elem15:
-                        print(elem15.text)
+                        print("  "+elem15.text)
             else:
                 elem15 = soup.select_one(".container > p:nth-child(15)")
                 if elem15:
-                    print(elem15.text)
+                    print("  "+elem15.text)
         def logout():
             r = session.get("https://hack.arrrg.de/logout")
             print(f"\n🆗 Logout finally returned {r.status_code}\n")
@@ -534,7 +593,7 @@ HTW/CHALLENGES/"""+chal+" - "+soup_abs.select_one("h2").get_text())
 
         if action=="wechall":
             r = session.get("https://hack.arrrg.de/profile")
-            print(f"\n🆗 Data request finally returned {r.status_code}")
+            print(f"\n🆗 Data request finally returned {r.status_code}\n")
             soup = BeautifulSoup(r.text, "html.parser")
             container = soup.select_one(".container")
             token = None
@@ -556,7 +615,7 @@ HTW/CHALLENGES/"""+chal+" - "+soup_abs.select_one("h2").get_text())
                                 token = m2.group(1)
                         break
             if token:
-                print(f"WeChall token: {token}")
+                print(f"  WeChall token: {token}")
             else:
                 print("⚠️ WeChall token not found.")
         input("\n\033[90m⌛ Press Enter to continue...\033[0m")
