@@ -131,6 +131,7 @@ htw/"""+action)
                 print("🔄️ Deleting contents")
                 form = session.get("https://hack.arrrg.de/delete")
                 print(f"🆗 CRSF Form Website request finally returned {form.status_code}")
+                crsf=""
                 if form.url == "https://hack.arrrg.de/delete":
                     soup = BeautifulSoup(form.text, "html.parser")
                     crsf = soup.select_one('input[type="hidden"]').get("value")
@@ -215,7 +216,7 @@ htw/"""+action)
                             print("ℹ️ Did not use template for 118 (405)")
                         elif k.replace("/challenge/","") in ("303","338"):
                             results=[]
-                            for p in soup_abs.select("div.row p"):
+                            for p in soup.select("div.row p"):
                                 span = p.find("span")
                                 if span:
                                     expr = span.get_text().replace("=", "")
@@ -224,10 +225,10 @@ htw/"""+action)
                                     except:
                                         pass
                             sol = results
-                            data = {f"ans{i}": v for i, v in enumerate(sol)}
-                            data["answer"] = "ok"
+                            sdata = {f"ans{i}": v for i, v in enumerate(sol)}
+                            sdata["answer"] = "ok"
                             print("ℹ️ Did not use template for "+k.replace("/challenge/","")+" (405)")
-                            r = session.post(f"https://hack.arrrg.de/challenge/{chal}", data=data)
+                            r = session.post(f"https://hack.arrrg.de{k}", data=sdata)
                         else:
                             r = session.post(f"https://hack.arrrg.de{k}", data={"answer": v})
                         soup = BeautifulSoup(r.text, "html.parser")
