@@ -357,7 +357,7 @@ htw/"""+action)
 HTW/CHALLENGES/"""+chal+" - "+soup_abs.select_one("h2").get_text())
                 print(f"\033[90m{solvedCount} • \033[3mThe challenge has been opened in another window.\033[0m\033[0m")
                 while True:
-                    if chal in ("300","118","303","338"):
+                    if chal in ("300","118","303","338","328"):
                         print("⚠️ Leave the field free below to solve it automatically.")
                     sol = input("\nEnter solution or 'quit' to abort and 'skip' to skip: ").strip()
                     if sol.lower() in ("skip", "s"):
@@ -368,10 +368,12 @@ HTW/CHALLENGES/"""+chal+" - "+soup_abs.select_one("h2").get_text())
                             print("⚠️ 'skip' only valid in random mode. Use empty challenge ID to enable random mode.")
                             continue
 
-                    if sol=="" and chal in ("300","118"):
+                    if sol=="" and chal in ("300","118","328"):
                         print("\n🔄️ Solving this task automatically...")
                         if chal == "300":
                             sol="htw4ever"
+                        if chal == "328":
+                            sol="community_archiv_freischalten"
                     if sol.lower() in ("quit", "q", "exit"):
                         print("✅ Abort")
                         random_mode = False
