@@ -23,7 +23,7 @@ echo.
 echo Installing Python 3.13... DONE
 echo Installing PIP... DONE
 echo Checking and downloading dependencies:
-echo requests, getpass, bs4, sys, re, webbrowser, atexit, os, tempfile...
+echo requests, getpass, bs4, sys, re, webbrowser, atexit, os, tempfile, shutil...
 pip install requests bs4
 
 cls
