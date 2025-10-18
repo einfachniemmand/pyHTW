@@ -372,8 +372,12 @@ HTW/CHALLENGES/"""+chal+" - "+soup_abs.select_one("h2").get_text())
                         print("\n🔄️ Solving this task automatically...")
                         if chal == "300":
                             sol="htw4ever"
+                    if sol.lower() in ("quit", "q", "exit"):
+                        print("✅ Abort")
+                        random_mode = False
+                        break
+                    results=[]
                     if sol=="" and chal in ("303","338"):
-                        results=[]
                         for p in soup_abs.select("div.row p"):
                             span = p.find("span")
                             if span:
@@ -382,18 +386,13 @@ HTW/CHALLENGES/"""+chal+" - "+soup_abs.select_one("h2").get_text())
                                     results.append(str(eval(expr)))
                                 except:
                                     pass
-
-                        sol = results
-                    if sol.lower() in ("quit", "q", "exit"):
-                        print("✅ Abort")
-                        random_mode = False
-                        break
                     if sol=="" and chal == "118":
                         r = session.post(f"https://hack.arrrg.de/challenge/{chal}", data={"q1":"4","q2":"4","q3":"4","q4":"2","good":"-","improve":"-","recommend":"yes","answer": "_",})
                     elif sol=="" and chal in ("303","338"):
-                        data = {f"ans{i}": v for i, v in enumerate(sol)}
+                        data = {f"ans{i}": v for i, v in enumerate(results)}
                         data["answer"] = "ok"
                         r = session.post(f"https://hack.arrrg.de/challenge/{chal}", data=data)
+                        print(r.text)
                     else:
                         r = session.post(f"https://hack.arrrg.de/challenge/{chal}", data={"answer": sol})
                     soup = BeautifulSoup(r.text, "html.parser")
